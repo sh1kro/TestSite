@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manila Hospital Classifications</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Google Font: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Base styles */
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden; /* Prevent horizontal scroll */
+        }
+        
+        /* Video Background */
+        #video-bg {
+            position: fixed;
+            right: 0;
+            bottom: 0;
+            min-width: 100%;
+            min-height: 100%;
+            width: auto;
+            height: auto;
+            z-index: -10;
+            object-fit: cover; /* Cover the entire screen */
+            filter: brightness(0.7); /* Dim the video slightly for text contrast */
+        }
+        
+        /* "Liquid Smooth" Glass Effect Class */
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.7); /* Light, semi-transparent background */
+            backdrop-filter: blur(12px); /* The "glass" blur effect */
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.2); /* Subtle border */
+        }
+        
+        /* Active filter button style */
+        .filter-btn.active {
+            background-color: #3B82F6; /* blue-500 */
+            color: white;
+            box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.3);
+        }
+        /* Smooth scroll behavior */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* Map link and image container */
+        .location-container {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .map-image {
+            width: 200px;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 0.5rem;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+
+        /* Map link button */
+        .map-link {
+            display: inline-flex;
+            align-items: center;
+            margin-left: 0.5rem;
+            padding: 0.35rem 0.6rem;
+            background: rgba(59,130,246,0.08);
+            color: #2563eb;
+            border-radius: 0.375rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-decoration: none;
+            transition: background-color 150ms ease, transform 150ms ease;
+            border: 1px solid rgba(37,99,235,0.12);
+        }
+        .map-link:hover {
+            background: rgba(59,130,246,0.14);
+            transform: translateY(-1px);
+        }
+
+        /* Intro Overlay */
+        #intro-overlay {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 100;
+            opacity: 1;
+            transition: opacity 0.7s ease;
+        }
+
+        #intro-overlay .content {
+            max-width: 600px;
+            text-align: center;
+            color: white;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            background: rgba(0, 0, 0, 0.7);
+        }
+
+        #intro-overlay h1 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        #intro-overlay p {
+            margin-bottom: 1rem;
+        }
+
+        #intro-overlay .creator {
+            margin-top: 1.5rem;
+            font-weight: bold;
+        }
+        </style>
+
+        <script>
+        (function() {
+            function generateGoogleMapsUrl(address) {
+            return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(address);
+            }
+
+            function generateStaticMapUrl(address) {
+            return `https://maps.googleapis.com/maps/api/staticmap?center=${encodeURIComponent(address)}&zoom=15&size=400x300&markers=${encodeURIComponent(address)}&key=YOUR_GOOGLE_MAPS_API_KEY`;
+            }
+
+            document.addEventListener('DOMContentLoaded', () => {
+            const modalAddressEl = document.getElementById('modal-address');
+                if (!modalAddressEl) return;
+
+                const MAP_LINK_ID = 'modal-map-link';
+
+                function ensureMapLink() {
+                    let link = document.getElementById(MAP_LINK_ID);
+                    if (!link) {
+                        link = document.createElement('a');
+                        link.id = MAP_LINK_ID;
+                        link.className = 'map-link';
+                        link.target = '_blank';
+                        link.rel = 'noopener noreferrer';
+                        link.textContent = 'View on Google Maps ⇢';
+                        // Place the link right after the address paragraph
+                        modalAddressEl.insertAdjacentElement('afterend', link);
+                    }
+                    return link;
+                }
+
+                function updateMapLink(addressText) {
+                    const link = ensureMapLink();
+                    const text = (addressText || '').trim();
+                    // prefer dataset.mapsQuery if available (set by openModal)
+                    const mapsQuery = modalAddressEl.dataset.mapsQuery || text;
+                    if (!mapsQuery || mapsQuery === 'Address not specified') {
+                        link.style.display = 'none';
+                        link.removeAttribute('href');
+                        link.setAttribute('aria-hidden', 'true');
+                    } else {
+                        link.style.display = 'inline-flex';
+                        link.removeAttribute('aria-hidden');
+                        link.href = generateGoogleMapsUrl(mapsQuery);
+                    }
+                }
+
+                // Observe changes to the modal address element (openModal sets textContent).
+                const observer = new MutationObserver(() => {
+                    updateMapLink(modalAddressEl.textContent);
+                });
+                observer.observe(modalAddressEl, { childList: true, characterData: true, subtree: true });
+
+                // Also initialize in case content already present
+                updateMapLink(modalAddressEl.textContent);
+            });
+        })();
+    </script>
+</head>
+<body class="bg-gray-900 text-gray-900">
+
+    <!-- Intro Overlay -->
+    <div id="intro-overlay" class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black bg-opacity-80 transition-opacity duration-700">
+        <div class="relative glass-effect rounded-2xl px-8 py-10 text-center shadow-2xl max-w-lg">
+            <!-- Close Button -->
+            <button id="intro-close-btn" class="absolute top-3 right-4 text-gray-500 hover:text-gray-900 text-3xl font-bold focus:outline-none" aria-label="Close intro overlay">&times;</button>
+            <h1 class="text-3xl md:text-4xl font-bold text-blue-500 mb-4">Manila Hospital Classifications</h1>
+            <p class="text-lg text-gray-800 mb-2">A Project for NRS 2107 Community Health Nursing</p>
+            <div class="mt-6 mb-2">
+                <span class="block text-xl font-semibold text-gray-900">Created by</span>
+                <span class="block text-2xl font-bold text-blue-700">Patrick Martin N. Caparas</span>
+            </div>
+            <div class="mt-2">
+                <span class="block text-lg text-gray-700">BSN 2-3</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Video Background -->
+    <video autoplay loop muted playsinline id="video-bg">
+        <!-- Using a royalty-free stock video related to medical/hospital -->
+        <source src="https://videos.pexels.com/video-files/5453837/5453837-hd_1920_1080_25fps.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+    </video>
+
+    <!-- Main Content Wrapper -->
+    <div class="relative min-h-screen w-full px-4 py-8 md:px-8 md:py-12">
+        
+        <!-- Header -->
+        <header class="text-center mb-12">
+            <h1 class="text-4xl md:text-6xl font-bold text-white shadow-lg" style="text-shadow: 0 2px 4px rgba(0,0,0,0.4);">
+                Manila Hospital Classifications
+            </h1>
+            <p class="text-lg md:text-xl text-gray-200 mt-2" style="text-shadow: 0 1px 3px rgba(0,0,0,0.3);">
+                Explore Primary, Secondary, and Tertiary facilities.
+            </p>
+        </header>
+
+        <!-- Filter Buttons (Sticky) -->
+        <nav class="sticky top-4 z-30 w-full flex flex-col items-center py-4 gap-2">
+            <!-- Classification Filter -->
+            <div id="classification-filter" class="flex flex-wrap justify-center gap-2 md:gap-4 glass-effect shadow-xl rounded-full p-2 mb-2">
+                <button onclick="setClassificationFilter('All', this)" class="filter-btn classification-btn active transition-all duration-300 py-2 px-5 rounded-full text-sm md:text-base font-medium hover:bg-blue-400 hover:text-white">
+                    All Levels
+                </button>
+                <button onclick="setClassificationFilter('Primary', this)" class="filter-btn classification-btn transition-all duration-300 py-2 px-5 rounded-full text-sm md:text-base font-medium hover:bg-blue-400 hover:text-white">
+                    Primary
+                </button>
+                <button onclick="setClassificationFilter('Secondary', this)" class="filter-btn classification-btn transition-all duration-300 py-2 px-5 rounded-full text-sm md:text-base font-medium hover:bg-blue-400 hover:text-white">
+                    Secondary
+                </button>
+                <button onclick="setClassificationFilter('Tertiary', this)" class="filter-btn classification-btn transition-all duration-300 py-2 px-5 rounded-full text-sm md:text-base font-medium hover:bg-blue-400 hover:text-white">
+                    Tertiary
+                </button>
+            </div>
+            <!-- Type Filter -->
+            <div id="type-filter" class="flex flex-wrap justify-center gap-2 md:gap-4 glass-effect shadow-xl rounded-full p-2">
+                <button onclick="setTypeFilter('All', this)" class="filter-btn type-btn active transition-all duration-300 py-2 px-5 rounded-full text-sm md:text-base font-medium hover:bg-blue-400 hover:text-white">
+                    All Types
+                </button>
+                <button onclick="setTypeFilter('Public', this)" class="filter-btn type-btn transition-all duration-300 py-2 px-5 rounded-full text-sm md:text-base font-medium hover:bg-blue-400 hover:text-white">
+                    Public
+                </button>
+                <button onclick="setTypeFilter('Private', this)" class="filter-btn type-btn transition-all duration-300 py-2 px-5 rounded-full text-sm md:text-base font-medium hover:bg-blue-400 hover:text-white">
+                    Private
+                </button>
+            </div>
+        </nav>
+
+        <!-- Hospital Grid -->
+        <main id="hospital-grid" class="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
+            <!-- Hospital cards will be dynamically inserted here by JavaScript -->
+        </main>
+
+    </div>
+
+    <!-- Modal (Hidden by Default) -->
+    <div id="hospital-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-70 backdrop-blur-sm hidden opacity-0 transition-opacity duration-300" onclick="closeModal()">
+        
+        <div class="glass-effect shadow-2xl rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto transition-transform duration-300 transform scale-95" onclick="event.stopPropagation()">
+            <!-- Modal Header -->
+            <div class="flex justify-between items-center p-5 md:p-6 border-b border-gray-300">
+                <div>
+                    <h2 id="modal-title" class="text-2xl md:text-3xl font-bold text-blue-800">Hospital Name</h2>
+                    <p id="modal-level-type" class="text-lg text-gray-600">Level & Type</p>
+                </div>
+                <button onclick="closeModal()" class="text-gray-500 hover:text-gray-900 transition-colors rounded-full p-2 text-2xl leading-none">&times;</button>
+            </div>
+            
+            <!-- Modal Body -->
+            <div class="p-5 md:p-6">
+                <!-- Address -->
+                <div class="mb-6">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-2">Location</h3>
+                    <p id="modal-address" class="text-gray-700"></p>
+                    <!-- contact info (phone / website) -->
+                    <div id="modal-contact" class="mt-3 text-sm text-gray-700 space-y-1"></div>
+                </div>
+
+                <!-- Key Officers -->
+                <div>
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">Key Officers</h3>
+                    <dl id="modal-officers" class="space-y-3">
+                        <!-- Officers will be injected here -->
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Hospital Data ---
+        // Based on the information you provided
+        const hospitalData = [
+            // Public Hospitals
+            {
+                id: 1,
+                name: "Philippine General Hospital",
+                type: "Public",
+                level: "Tertiary",
+                address: "Philippine General Hospital, Taft Ave, Ermita, Manila, 1000 Metro Manila",
+                mapsQuery: "Philippine General Hospital, Taft Avenue and Pedro Gil St, Ermita, Manila, Philippines",
+                phone: "(02) 8554-8400",
+                website: "https://pgh.gov.ph",
+                facebook: "https://www.facebook.com/philippinegeneralhospitalofficial",
+                email: "pgh.info@up.edu.ph",
+                director: "Gerardo D. Legaspi, MD",
+                admin: "Apolinario Ericson B. Berberabe, MD",
+                nurse: "Maria Cecilia E. Punzalan, RN, MA"
+            },
+            {
+                id: 2,
+                name: "Ospital ng Maynila Medical Center",
+                type: "Public",
+                level: "Tertiary",
+                address: "Ospital ng Maynila, Pres. Quirino Ave, Malate, Manila, 1004 Metro Manila",
+                mapsQuery: "Ospital ng Maynila Medical Center, Pres. Quirino Avenue, Malate, Manila, Philippines",
+                phone: "(02) 8524-6061",
+                website: "https://om.manila.gov.ph",
+                facebook: "https://www.facebook.com/OspitalngMaynilaMedicalCenterOfficial",
+                email: "ommc@manila.gov.ph",
+                director: "Grace H. Padilla, MD, FPPS, MHA",
+                admin: "Maylyn A. Flores, MBA",
+                nurse: "Analie R. Grayda, RN, MAN, MHM, MBA"
+            },
+            {
+                id: 3,
+                name: "Ospital ng Sampaloc",
+                type: "Public",
+                level: "Secondary",
+                address: "Ospital ng Sampaloc, 677 Gen. Geronimo St, Sampaloc, Manila, 1008 Metro Manila",
+                mapsQuery: "Ospital ng Sampaloc, 677 General Geronimo St, Sampaloc, Manila, Philippines",
+                phone: "(02) 8716-4085",
+                website: "N/A",
+                facebook: "https://www.facebook.com/OspitalNgSampalocManila",
+                email: "ospitalngsampaloc@manila.gov.ph",
+                director: "Angel Erich R. Sison, MD, FPAFP, TCMac",
+                admin: "N/A",
+                nurse: "Jessie Supnad RN, RM, MAN, LPT",
+                other: "Assistant Hospital Director: Manuel Sotelo III MD"
+            },
+            {
+                id: 4,
+                name: "Tondo Medical Center",
+                type: "Public",
+                level: "Tertiary",
+                address: "Tondo Medical Center, Honorio Lopez Blvd, Tondo, Manila, Metro Manila",
+                mapsQuery: "Tondo Medical Center, Honorio Lopez Boulevard, Tondo, Manila, Philippines",
+                phone: "(02) 8865-9100",
+                website: "https://tmc.doh.gov.ph",
+                facebook: "https://www.facebook.com/tondomedicalcenter",
+                email: "tmc@doh.gov.ph",
+                director: "Maria Isabelita M. Estrella, MD, MHA, FPOGS, CESE, FISA",
+                admin: "MELINDA C. TAN, MPA",
+                nurse: "MA. LALINE V. VERANCES, RN, MAN, PhD"
+            },
+            {
+                id: 5,
+                name: "Dr. Jose Fabella Memorial Hospital",
+                type: "Public",
+                level: "Tertiary",
+                address: "Dr. Jose Fabella Memorial Hospital, Lope de Vega St, Santa Cruz, Manila, 1003 Metro Manila",
+                mapsQuery: "Dr. Jose Fabella Memorial Hospital, Lope de Vega St, Santa Cruz, Manila, Philippines",
+                phone: "(02) 8734-5561",
+                website: "https://fabella.doh.gov.ph",
+                facebook: "https://www.facebook.com/FabellaHospital",
+                email: "fabella_mcc@yahoo.com",
+                director: "Salvador B. Evardone MD, MPH, MHA, CESE",
+                admin: "Lourdes C. Mendoza",
+                nurse: "Ma. Nancy C. Guia, RN"
+            },
+            {
+                id: 6,
+                name: "San Lazaro Hospital",
+                type: "Public",
+                level: "Tertiary",
+                address: "San Lazaro Hospital, Quiricada St, Santa Cruz, Manila, 1003 Metro Manila",
+                mapsQuery: "San Lazaro Hospital, Quiricada St, Santa Cruz, Manila, Philippines",
+                phone: "(02) 8732-3776",
+                website: "https://slh.doh.gov.ph",
+                facebook: "https://www.facebook.com/SanLazaroHospitalDOH",
+                email: "sanlazarohospital@yahoo.com",
+                director: "David T. Suplico, MD",
+                admin: "Aida DC. Calma, CE, SE, MSME, ACPE, ASEAN Eng.",
+                nurse: "Ferdinand A. Lazaro, RN, MAN",
+                other: "OIC - CMPS: Iftizar N. Haron, MD, FPSP, MHA"
+            },
+            {
+                id: 7,
+                name: "Gat Andres Bonifacio Memorial Medical Center",
+                type: "Public",
+                level: "Secondary",
+                address: "Gat Andres Bonifacio Memorial Medical Center, Delpan St, Tondo, Manila, Metro Manila",
+                mapsQuery: "Gat Andres Bonifacio Memorial Medical Center (GABMMC), Delpan St, Tondo, Manila, Philippines",
+                phone: "(02) 8562-9856",
+                website: "N/A",
+                facebook: "https://www.facebook.com/gabmmc.official",
+                email: "gabmmc@manila.gov.ph",
+                director: "Dr. Karl Oliver Laqui",
+                admin: "Miguelito Gonzales, MPH",
+                nurse: "Ms. Cherry Prado, RN, MSN"
+            },
+            {
+                id: 8,
+                name: "Sta. Ana Hospital",
+                type: "Public",
+                level: "Secondary",
+                address: "Sta. Ana Hospital, New Panaderos St, Santa Ana, Manila, 1009 Metro Manila",
+                mapsQuery: "Sta. Ana Hospital, New Panaderos St, Santa Ana, Manila, Philippines",
+                phone: "(02) 8516-6151",
+                website: "N/A",
+                facebook: "https://www.facebook.com/StaAnaHospitalManila",
+                email: "staanahospital@manila.gov.ph",
+                director: "Dr. Janet del Mundo-Tan",
+                admin: "Midas Capinig",
+                nurse: "John Paulo Del Rosario RN, MAN"
+            },
+            {
+                id: 9,
+                name: "Ospital ng Tondo",
+                type: "Public",
+                level: "Secondary",
+                address: "Ospital ng Tondo, Jose Abad Santos Ave, Tondo, Manila, Metro Manila",
+                mapsQuery: "Ospital ng Tondo, Jose Abad Santos Avenue, Tondo, Manila, Philippines",
+                phone: "(02) 8251-9402",
+                website: "N/A",
+                facebook: "https://www.facebook.com/OspitalNgTondo.Official",
+                email: "ospitalngtondo@manila.gov.ph",
+                director: "Edwin C. Perez, RN, MD, MBA",
+                admin: "Mary Jane A. Celeridad, MMHOA, MAN, RN",
+                nurse: "Tita Marie S. Salcedo, MAN, RN, RM",
+                other: "OIC- Chief of Clinics: Dinah N. Sia Tan, MD, FPOGS, FPSUOG"
+            },
+            {
+                id: 10,
+                name: "Rosario Reyes Health Center",
+                type: "Public",
+                level: "Primary",
+                address: "Rosario Reyes Health Center, Manila, Metro Manila",
+                mapsQuery: "Rosario Reyes Health Center, Manila, Philippines",
+                phone: "(02) 8708-9477",
+                website: "N/A",
+                facebook: "N/A",
+                email: "N/A",
+                director: "Chief Teresita L. Lim, M.D., MAN",
+                admin: "Marissa B. Asilo",
+                nurse: "N/A"
+            },
+            // Private Hospitals
+            {
+                id: 11,
+                name: "Chinese General Hospital and Medical Center",
+                type: "Private",
+                level: "Tertiary",
+                address: "Chinese General Hospital and Medical Center, 286 Blumentritt Rd, Santa Cruz, Manila, 1014 Metro Manila",
+                mapsQuery: "Chinese General Hospital and Medical Center, Blumentritt Road, Santa Cruz, Manila, Philippines",
+                phone: "(02) 8711-4141",
+                website: "https://cghmc.com.ph",
+                facebook: "https://www.facebook.com/CGHMC",
+                email: "info@cghmc.com.ph",
+                director: "Dr. Samuel D. Ang, M.D.",
+                admin: "Kelly Hun Sia (CEO)",
+                nurse: "Luna Serrano R.N., M.A.N."
+            },
+            {
+                id: 12,
+                name: "University of Santo Tomas Hospital",
+                type: "Private",
+                level: "Tertiary",
+                address: "University of Santo Tomas Hospital, España Blvd, Sampaloc, Manila, 1008 Metro Manila",
+                mapsQuery: "University of Santo Tomas Hospital, España Boulevard, Sampaloc, Manila, Philippines",
+                phone: "(02) 8731-3001",
+                website: "https://usthospital.com.ph",
+                facebook: "https://www.facebook.com/USTH1946Official",
+                email: "info@usthospital.com.ph",
+                director: "Prof. Charito P. Malong-Consolacion, MD, MHA",
+                admin: "Prof. Analin E. Porto, DEM. RMT",
+                nurse: "Tyona Marie M. Gesite, RN, MAN"
+            },
+            {
+                id: 13,
+                name: "Manila Doctors Hospital",
+                type: "Private",
+                level: "Tertiary",
+                address: "Manila Doctors Hospital, 667 United Nations Ave, Ermita, Manila, 1000 Metro Manila",
+                mapsQuery: "Manila Doctors Hospital, United Nations Avenue, Ermita, Manila, Philippines",
+                phone: "(02) 8558-0888",
+                website: "https://www.maniladoctors.com.ph",
+                facebook: "https://www.facebook.com/maniladoctorshospital",
+                email: "info@maniladoctors.com.ph",
+                director: "Alberto B. Roxas, MD",
+                admin: "N/A",
+                nurse: "N/A"
+            },
+            {
+                id: 14,
+                name: "Metropolitan Medical Center",
+                type: "Private",
+                level: "Tertiary", // updated from Unclassified
+                address: "Metropolitan Medical Center, 1357 G. Masangkay St, Tondo, Manila, 1003 Metro Manila",
+                mapsQuery: "Metropolitan Medical Center, G. Masangkay St, Tondo, Manila, Philippines",
+                phone: "(02) 8254-1111",
+                website: "https://metropolitanmedicalcenter.com",
+                facebook: "https://www.facebook.com/MetropolitanMedicalCenter",
+                email: "customercare@metromedicalcenter.ph",
+                director: "N/A",
+                admin: "N/A",
+                nurse: "N/A"
+            },
+            {
+                id: 15,
+                name: "Perpetual Succor Hospital",
+                type: "Private",
+                level: "Primary", // updated from Unclassified
+                address: "Perpetual Succor Hospital, 836 F. Cayco St, Sampaloc, Manila, 1008 Metro Manila",
+                mapsQuery: "Perpetual Succor Hospital, F. Cayco St, Sampaloc, Manila, Philippines",
+                phone: "(02) 8731-1631",
+                website: "https://perpetualsuccorhospital.com",
+                facebook: "https://www.facebook.com/perpetualsuccorhospitalmanila",
+                email: "perpetual.succor@yahoo.com",
+                director: "N/A",
+                admin: "N/A",
+                nurse: "N/A"
+            },
+            {
+                id: 16,
+                name: "Mary Chiles General Hospital",
+                type: "Private",
+                level: "Tertiary",
+                address: "Mary Chiles General Hospital, 667 Dalin St, Sampaloc, Manila, 1008 Metro Manila",
+                mapsQuery: "Mary Chiles General Hospital, Dalin St, Sampaloc, Manila, Philippines",
+                phone: "(02) 8735-5341",
+                website: "https://marychiles.com",
+                facebook: "https://www.facebook.com/MaryChilesGeneralHospital",
+                email: "marychilesgeneralhospital@gmail.com",
+                director: "Dr. Rolando A. Florendo",
+                admin: "Dr. Edwardo A. Florendo",
+                nurse: "Rosie Cabañero"
+            },
+            {
+                id: 17,
+                name: "De Ocampo Memorial Medical Center",
+                type: "Private",
+                level: "Primary", // updated from Unclassified
+                address: "De Ocampo Memorial Medical Center, 2921 Nagtahan St, Santa Mesa, Manila, 1008 Metro Manila",
+                mapsQuery: "De Ocampo Memorial Medical Center, Nagtahan St, Santa Mesa, Manila, Philippines",
+                phone: "(02) 8715-1891",
+                website: "https://deocampomemorialcollege.edu.ph/hospital/",
+                facebook: "https://www.facebook.com/deocampomemorialmedicalcenter",
+                email: "deocampomemorialmedicalcenter23@yahoo.com",
+                director: "N/A",
+                admin: "N/A",
+                nurse: "N/A"
+            },
+            {
+                id: 18,
+                name: "Jose R. Reyes Memorial Medical Center",
+                type: "Private",
+                level: "Tertiary",
+                address: "Jose R. Reyes Memorial Medical Center, Rizal Ave, Santa Cruz, Manila, 1003 Metro Manila",
+                mapsQuery: "Jose R. Reyes Memorial Medical Center, Rizal Avenue, Santa Cruz, Manila, Philippines",
+                phone: "(02) 8711-9491",
+                website: "https://jrrmmc.doh.gov.ph",
+                facebook: "https://www.facebook.com/JRRMMCManila",
+                email: "info@jrrmmc.gov.ph",
+                director: "WENCESLAO S. LLAUDERES, MD., FPSNM, MPM-HG.",
+                admin: "ATTY. RUELA C. MENDOZA",
+                nurse: "JOSEPH T. GATCHALIAN, RN., MAN."
+            },
+            {
+                id: 19,
+                name: "Our Lady of Lourdes Hospital",
+                type: "Private",
+                level: "Tertiary", // updated from Unclassified
+                address: "Our Lady of Lourdes Hospital, 46 P. Sanchez St, Santa Mesa, Manila, 1016 Metro Manila",
+                mapsQuery: "Our Lady of Lourdes Hospital, P. Sanchez St, Santa Mesa, Manila, Philippines",
+                phone: "(02) 8716-3901",
+                website: "https://www.lourdeshospital.com.ph",
+                facebook: "https://www.facebook.com/ollh.info",
+                email: "info@lourdeshospital.com.ph",
+                director: "N/A",
+                admin: "N/A",
+                nurse: "N/A"
+            },
+            {
+                id: 20,
+                name: "ManilaMed",
+                type: "Private",
+                level: "Tertiary", // updated from Unclassified
+                address: "ManilaMed, 1122 General Luna St, Ermita, Manila, 1000 Metro Manila",
+                mapsQuery: "ManilaMed, General Luna St, Ermita, Manila, Philippines",
+                phone: "(02) 8523-8131",
+                website: "https://manilamed.net.ph",
+                facebook: "https://www.facebook.com/ManilaMed",
+                email: "info@manilamed.net.ph",
+                director: "N/A",
+                admin: "N/A",
+                nurse: "N/A"
+            }
+        ];
+
+        // --- Global Variables ---
+        const hospitalGrid = document.getElementById('hospital-grid');
+        const modal = document.getElementById('hospital-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalLevelType = document.getElementById('modal-level-type');
+        const modalAddress = document.getElementById('modal-address');
+        const modalOfficers = document.getElementById('modal-officers');
+
+        // --- Functions ---
+
+        /**
+         * Renders all hospital cards into the grid
+         */
+        function renderHospitalCards() {
+            let gridHtml = '';
+            for (const hospital of hospitalData) {
+                
+                let levelColorClass = '';
+                switch(hospital.level) {
+                    case 'Primary':
+                        levelColorClass = 'bg-green-100 text-green-800';
+                        break;
+                    case 'Secondary':
+                        levelColorClass = 'bg-yellow-100 text-yellow-800';
+                        break;
+                    case 'Tertiary':
+                        levelColorClass = 'bg-red-100 text-red-800';
+                        break;
+                    default:
+                        levelColorClass = 'bg-gray-100 text-gray-800';
+                }
+
+                gridHtml += `
+                    <div class="hospital-card glass-effect shadow-lg rounded-xl overflow-hidden transition-all duration-300 ease-in-out hover:shadow-2xl hover:-translate-y-1 cursor-pointer" 
+                         data-level="${hospital.level}" 
+                         onclick="openModal(${hospital.id})">
+                        
+                        <div class="p-5">
+                            <div class="flex justify-between items-center mb-3">
+                                <span class="text-xs font-semibold inline-block py-1 px-3 rounded-full ${levelColorClass}">
+                                    ${hospital.level}
+                                </span>
+                                <span class="text-xs font-medium text-gray-600">${hospital.type}</span>
+                            </div>
+                            <h3 class="text-xl font-bold text-gray-900 mb-2 truncate">${hospital.name}</h3>
+                            <p class="text-sm text-gray-600 truncate">${hospital.address}</p>
+                        </div>
+                        <div class="p-5 bg-gray-50 bg-opacity-50 text-right">
+                            <span class="text-blue-600 font-semibold text-sm">View Details &rarr;</span>
+                        </div>
+                    </div>
+                `;
+            }
+            hospitalGrid.innerHTML = gridHtml;
+        }
+
+        // --- Filter State ---
+        let currentClassification = 'All';
+        let currentType = 'All';
+
+        function setClassificationFilter(level, buttonElement) {
+            currentClassification = level;
+            document.querySelectorAll('.classification-btn').forEach(btn => btn.classList.remove('active'));
+            buttonElement.classList.add('active');
+            applyFilters();
+        }
+
+        function setTypeFilter(type, buttonElement) {
+            currentType = type;
+            document.querySelectorAll('.type-btn').forEach(btn => btn.classList.remove('active'));
+            buttonElement.classList.add('active');
+            applyFilters();
+        }
+
+        function applyFilters() {
+            const cards = document.querySelectorAll('.hospital-card');
+            cards.forEach(card => {
+                const hospitalId = parseInt(card.getAttribute('onclick').match(/\d+/)[0]);
+                const hospital = hospitalData.find(h => h.id === hospitalId);
+
+                // Classification filter
+                const matchesClassification = (currentClassification === 'All' || card.dataset.level === currentClassification);
+                // Type filter
+                const matchesType = (currentType === 'All' || hospital.type === currentType);
+
+                if (matchesClassification && matchesType) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        /**
+         * Opens and populates the modal with hospital data
+         */
+        function openModal(hospitalId) {
+            const hospital = hospitalData.find(h => h.id === hospitalId);
+            if (!hospital) return;
+
+            // Populate modal content
+            modalTitle.textContent = hospital.name;
+            modalLevelType.textContent = `${hospital.level} Level • ${hospital.type}`;
+            modalAddress.textContent = hospital.address || 'Address not specified';
+            // set precise maps query onto the address node for map-link usage
+            modalAddress.dataset.mapsQuery = hospital.mapsQuery || hospital.address || '';
+
+            // populate contact block
+            const contactEl = document.getElementById('modal-contact');
+            let contactHtml = '';
+            if (hospital.phone && hospital.phone !== 'N/A') {
+                contactHtml += `<div>Phone: <a href="tel:${hospital.phone.replace(/[^+\d]/g,'')}" class="text-blue-600 underline">${hospital.phone}</a></div>`;
+            } else {
+                contactHtml += `<div>Phone: N/A</div>`;
+            }
+            if (hospital.website && hospital.website !== 'N/A') {
+                contactHtml += `<div>Website: <a href="${hospital.website}" target="_blank" rel="noopener noreferrer" class="text-blue-600 underline">${hospital.website}</a></div>`;
+            } else {
+                contactHtml += `<div>Website: N/A</div>`;
+            }
+            if (hospital.facebook && hospital.facebook !== 'N/A') {
+                contactHtml += `<div>Facebook: <a href="${hospital.facebook}" target="_blank" rel="noopener noreferrer" class="text-blue-600 underline">${hospital.facebook}</a></div>`;
+            } else {
+                contactHtml += `<div>Facebook: N/A</div>`;
+            }
+            // new: Email line
+            if (hospital.email && hospital.email !== 'N/A') {
+                contactHtml += `<div>Email: <a href="mailto:${hospital.email}" class="text-blue-600 underline">${hospital.email}</a></div>`;
+            } else {
+                contactHtml += `<div>Email: N/A</div>`;
+            }
+            contactEl.innerHTML = contactHtml;
+
+            // Build officers list
+            let officersHtml = '';
+            if (hospital.director && hospital.director !== 'N/A') {
+                officersHtml += `
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Medical Director</dt>
+                        <dd class="text-lg text-gray-900">${hospital.director}</dd>
+                    </div>
+                `;
+            }
+            if (hospital.admin && hospital.admin !== 'N/A') {
+                officersHtml += `
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Hospital Administrator</dt>
+                        <dd class="text-lg text-gray-900">${hospital.admin}</dd>
+                    </div>
+                `;
+            }
+            if (hospital.nurse && hospital.nurse !== 'N/A') {
+                officersHtml += `
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Chief Nurse / Nursing Director</dt>
+                        <dd class="text-lg text-gray-900">${hospital.nurse}</dd>
+                    </div>
+                `;
+            }
+            if (hospital.other && hospital.other !== 'N/A') {
+                officersHtml += `
+                    <div class="pt-2 mt-2 border-t border-gray-200">
+                        <dt class="text-sm font-medium text-gray-500">Other Officials</dt>
+                        <dd class="text-lg text-gray-900">${hospital.other}</dd>
+                    </div>
+                `;
+            }
+            modalOfficers.innerHTML = officersHtml;
+
+            // Show modal with transition
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modal.querySelector('div').classList.remove('scale-95');
+            }, 10); // Start transition after display block
+        }
+
+        /**
+         * Closes the modal
+         */
+        function closeModal() {
+            modal.classList.add('opacity-0');
+            modal.querySelector('div').classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300); // Wait for transition to finish
+        }
+
+        // --- Intro Overlay Logic ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const intro = document.getElementById('intro-overlay');
+            const closeBtn = document.getElementById('intro-close-btn');
+            closeBtn.addEventListener('click', () => {
+                intro.style.display = 'none';
+            });
+        });
+
+        // --- Initial Load ---
+        document.addEventListener('DOMContentLoaded', () => {
+            renderHospitalCards();
+        });
+
+    </script>
+
+</body>
+</html>
